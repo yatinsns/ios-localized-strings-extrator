@@ -25,8 +25,11 @@ def parse nib_filename, dir
       line = line.gsub(/\s+/, "")
       line = line.gsub(/\/\*/, "")
       line = line.gsub(/\*\//, "")
-      results = line.split(";").map do |split_value|
-        split_value.split("=")[1]
+
+      results = []
+      line.split(";").each_with_index do |split_value, index|
+        results.push split_value.split("=")[0] if index == 1
+        results.push split_value.split("=")[1]
       end
       current_list = results.unshift(nib_filename)
     elsif line =~ /.*=.*/
@@ -48,7 +51,7 @@ def header_format_in_workbook workbook
 end
 
 def insert_headers_in_worksheet worksheet, format
-  worksheet.write_col('A1', [['filename', 'Class', 'text', 'ObjectID', 'key', 'value']],
+  worksheet.write_col('A1', [['filename', 'Class', 'Param', 'English text', 'ObjectID', 'key', 'value']],
                       format)
 end
 
