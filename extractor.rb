@@ -2,6 +2,10 @@
 
 require 'write_xlsx'
 
+def debug(*args)
+  STDERR.puts(*args)
+end
+
 def filter_files filenames, dir
   filenames.select do |filename|
     File.file?("#{dir}/#{filename}")
@@ -19,23 +23,15 @@ def parse nib_filename, dir
   file_path = "#{dir}/#{nib_filename}"
 
   lists = []
-  current_list = []
   File.open(file_path).each do |line|
     if line =~ /\/\*.*\*\//
-      line = line.gsub(/\s+/, "")
-      line = line.gsub(/\/\*/, "")
-      line = line.gsub(/\*\//, "")
-
-      results = []
-      line.split(";").each_with_index do |split_value, index|
-        results.push split_value.split("=")[0] if index == 1
-        results.push split_value.split("=")[1]
-      end
-      current_list = results.unshift(nib_filename)
+      # do nothing
     elsif line =~ /.*=.*/
-      line = line.gsub(/\s+/, "")
+      line = line.gsub(/\"/, "")
+      current_list = []
+      current_list.push(nib_filename)
       current_list.push(line.split("=")[0])
-      current_list.push(line.split("=")[1])
+      current_list.push(line.split("=")[1].chomp.chomp(';'))
       lists.push(current_list)
     end
   end
@@ -51,7 +47,7 @@ def header_format_in_workbook workbook
 end
 
 def insert_headers_in_worksheet worksheet, format
-  worksheet.write_col('A1', [['filename', 'Class', 'Param', 'English text', 'ObjectID', 'key', 'value']],
+  worksheet.write_col('A1', [['filename', 'key', 'value']],
                       format)
 end
 
@@ -59,7 +55,7 @@ def extract_strings_from_dir dir
   filenames = filter_files Dir.entries(dir), dir
   nib_filenames = filter_nib_filenames filenames
 
-  workbook = WriteXLSX.new("Translations.xlsx")
+  workbook = WriteXLSX.new("Translations-#{dir.split("/").last}.xlsx")
   worksheet = workbook.add_worksheet
 
   header_format = header_format_in_workbook workbook
@@ -76,12 +72,31 @@ def extract_strings_from_dir dir
     end
   end
 
+  p rows
+ 
   worksheet.write_col('A2', rows)
 
   workbook.close
 end
 
+def extract_language_dir_from_ipa ipa
+  debug "Unzipping ipa"
+  system "rm -rf Payload"
+  system "unzip -q #{ipa}"
+
+  app = Dir.glob("Payload/*.app")[0]
+  proj_dirs = Dir.glob("#{app}/*.lproj")
+  proj_dirs.select do |proj_dir|
+    !(proj_dir.eql? "#{app}/Base.lproj")
+  end
+end
+
 if __FILE__ == $0
-  extract_strings_from_dir "/Users/yatin/directi/Pingpong-iOS/Resources/es.lproj"
+  language_dirs = extract_language_dir_from_ipa "/Users/yatin/projects/ios-localized-strings-extrator/App.ipa"
+  debug language_dirs
+
+  language_dirs.each do |dir|
+    extract_strings_from_dir dir
+  end
 end
 

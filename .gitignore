@@ -1,4 +1,4 @@
 *.lproj/
-*Translations.xlsx*
+*Translations*.xlsx*
 *.ipa
 Payload/
