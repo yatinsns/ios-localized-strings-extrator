@@ -1,2 +1,4 @@
 *.lproj/
 *Translations.xlsx*
+*.ipa
+Payload/
